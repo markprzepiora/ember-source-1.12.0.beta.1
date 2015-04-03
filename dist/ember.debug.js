@@ -18804,7 +18804,7 @@ enifed('ember-routing-htmlbars/helpers/render', ['exports', 'ember-metal/core', 
     while (pointer && !pointer._isOutlet) {
       pointer = pointer._parentView;
     }
-    while (pointer && (po = pointer._parentOutlet())) {
+    while (pointer && pointer._parentOutlet && (po = pointer._parentOutlet())) {
       pointer = po;
     }
     if (pointer) {
