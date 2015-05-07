@@ -5,7 +5,7 @@
  *            Portions Copyright 2008-2011 Apple Inc. All rights reserved.
  * @license   Licensed under MIT license
  *            See https://raw.github.com/emberjs/ember.js/master/LICENSE
- * @version   1.12.0-beta.1.ec701224
+ * @version   1.13.0-beta.1+canary.d10d66e8
  */
 
 (function() {
@@ -126,10 +126,34 @@ enifed('ember-debug', ['exports', 'ember-metal/core', 'ember-metal/error', 'embe
     @method _warnIfUsingStrippedFeatureFlags
     @return {void}
   */
+  function isPlainFunction(test) {
+    return typeof test === "function" && test.PrototypeMixin === undefined;
+  }
+
+  /**
+    Define an assertion that will throw an exception if the condition is not
+    met. Ember build tools will remove any calls to `Ember.assert()` when
+    doing a production build. Example:
+
+    ```javascript
+    // Test for truthiness
+    Ember.assert('Must pass a valid object', obj);
+
+    // Fail unconditionally
+    Ember.assert('This code path should never be run');
+    ```
+
+    @method assert
+    @param {String} desc A description of the assertion. This will become
+      the text of the Error thrown if the assertion fails.
+    @param {Boolean|Function} test Must be truthy for the assertion to pass. If
+      falsy, an exception will be thrown. If this is a function, it will be executed and
+      its return value will be used as condition.
+  */
   Ember['default'].assert = function (desc, test) {
     var throwAssertion;
 
-    if (Ember['default'].typeOf(test) === "function") {
+    if (isPlainFunction(test)) {
       throwAssertion = !test();
     } else {
       throwAssertion = !test;
@@ -189,7 +213,7 @@ enifed('ember-debug', ['exports', 'ember-metal/core', 'ember-metal/error', 'embe
   Ember['default'].deprecate = function (message, test, options) {
     var noDeprecation;
 
-    if (typeof test === "function") {
+    if (isPlainFunction(test)) {
       noDeprecation = test();
     } else {
       noDeprecation = test;
@@ -303,12 +327,15 @@ enifed('ember-debug', ['exports', 'ember-metal/core', 'ember-metal/error', 'embe
     Ember['default'].FEATURES["features-stripped-test"] = true;
     var featuresWereStripped = true;
 
-    
+    if (Ember['default'].FEATURES.isEnabled("features-stripped-test")) {
+      featuresWereStripped = false;
+    }
+
     delete Ember['default'].FEATURES["features-stripped-test"];
     _warnIfUsingStrippedFeatureFlags(Ember['default'].ENV.FEATURES, featuresWereStripped);
 
     // Inform the developer about the Ember Inspector if not installed.
-    var isFirefox = typeof InstallTrigger !== "undefined";
+    var isFirefox = environment['default'].isFirefox;
     var isChrome = environment['default'].isChrome;
 
     if (typeof window !== "undefined" && (isFirefox || isChrome) && window.addEventListener) {
@@ -695,7 +722,44 @@ enifed('ember-testing/helpers', ['ember-metal/core', 'ember-metal/property_get',
   */
   asyncHelper("click", click);
 
+  if (Ember['default'].FEATURES.isEnabled("ember-testing-checkbox-helpers")) {
     /**
+    * Checks a checkbox. Ensures the presence of the `checked` attribute
+    *
+    * Example:
+    *
+    * ```javascript
+    * check('#remember-me').then(function() {
+    *   // assert something
+    * });
+    * ```
+    *
+    * @method check
+    * @param {String} selector jQuery selector finding an `input[type="checkbox"]`
+    * element on the DOM to check
+    * @return {RSVP.Promise}
+    */
+    asyncHelper("check", check);
+
+    /**
+    * Unchecks a checkbox. Ensures the absence of the `checked` attribute
+    *
+    * Example:
+    *
+    * ```javascript
+    * uncheck('#remember-me').then(function() {
+    *   // assert something
+    * });
+    * ```
+    *
+    * @method check
+    * @param {String} selector jQuery selector finding an `input[type="checkbox"]`
+    * element on the DOM to uncheck
+    * @return {RSVP.Promise}
+    */
+    asyncHelper("uncheck", uncheck);
+  }
+  /**
   * Simulates a key event, e.g. `keypress`, `keydown`, `keyup` with the desired keyCode
   *
   * Example:
